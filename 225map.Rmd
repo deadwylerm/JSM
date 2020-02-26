@@ -1,0 +1,131 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+
+library(rgdal)
+library(raster)
+library(ggplot2)
+library(rgeos)
+library(mapview)
+library(leaflet)
+library(broom)
+library(plotKML)
+library(sp)
+library(sf)
+library(tidyverse)
+library(maptools)
+
+streams <- readOGR("C:/Users/Charis/Documents/Spring 2020/JSM/HabitatSuitabilityModel/HSM_selection.shp")
+streams2 <- readOGR("C:/Users/Charis/Documents/Spring 2020/JSM/HabitatSuitabilityModel/HSM_selection.shp")
+pts <- read.csv("C:/Users/Charis/Documents/Spring 2020/JSM/JSM_presence_coords.csv")
+```
+
+
+
+```{r}
+
+streams %>%
+  reproject() %>%
+  st_as_sf() %>%
+  st_centroid() -> df
+
+cbind(df,st_coordinates(df$geometry)) %>%
+           select (COMID,
+                   Longitude = X,
+                   Latitude = Y,
+                   JSM_suitab,
+                   fish_suita,
+                   JSM_fish_s,
+                   GNIS_NAME) -> df
+        
+
+plot(df["JSM_suitab"], axes=TRUE)
+
+summary(df)
+```
+
+```{r}
+
+
+df2 <- st_as_sf(streams2)
+df.latlng <- st_transform(df2, crs="+init=epsg:3857")
+plot(df.latlng["JSM_suitab"], axes=TRUE)
+
+streams2 <- reproject(streams2)
+```
+
+```{r}
+
+pts
+class(pts$Latitude)
+
+pts$Latitude <- as.numeric(as.character(pts$Latitude))
+pts$Longitude <- as.numeric(as.character(pts$Longitude))
+
+```
+
+
+
+```{r}
+
+mussel <- makeIcon(
+  iconUrl =  "https://i.imgur.com/juCFuRD.png",
+  iconWidth = 48,
+  iconHeight = 79,
+  iconAnchorX = 24,
+  iconAnchorY = 80)
+
+
+```
+
+```{r}
+m <- leaflet() %>%
+  setView(lng = -79, lat = 38, zoom = 8) %>%
+   addProviderTiles(providers$Esri.WorldGrayCanvas)%>%
+  addMarkers(data = pts, lng = ~Longitude, lat = ~Latitude) %>%
+  addPolylines(data = streams2, color = "#098F92", weight = 1.5, opacity = 1.0 ) %>%
+  addCircleMarkers(data = df, label = ~JSM_suitab, opacity = 1, color = "#611708", weight = 2, fillOpacity = 0, popup = ~GNIS_NAME, group = "scores_close") %>%
+  groupOptions("scores_close", zoomLevels = 12:18) %>%
+  addCircleMarkers(data = df, label = ~JSM_suitab, opacity = 0, fillOpacity = 0, popup = ~GNIS_NAME, group = "scores_far") %>%
+  groupOptions("scores_far", zoomLevels = 1:11)
+
+m
+```
+
+
+```{r}
+counties <- readOGR("C:/Users/Charis/Documents/R/counties/VirginiaCounty_ClippedToShoreline.shp")
+counties <- reproject(counties)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
